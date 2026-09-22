@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.roadside.app-mergeDebugResources-2:/values-hdpi-v4/values-hdpi-v4.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\Sri Sashank\\.gradle\\caches\\8.11.1\\transforms\\5c3ffb0d0a5fe01f1d84ac467981f62e\\transformed\\appcompat-1.1.0\\res\\values-hdpi-v4\\values-hdpi-v4.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "6",
+                        "endColumns": "13",
+                        "endOffsets": "327"
+                    }
+                }
+            ]
+        }
+    ]
+}

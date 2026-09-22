@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.roadside.app-mergeReleaseResources-2:/values-h720dp-v13/values-h720dp-v13.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\Sri Sashank\\.gradle\\caches\\8.11.1\\transforms\\5c3ffb0d0a5fe01f1d84ac467981f62e\\transformed\\appcompat-1.1.0\\res\\values-h720dp-v13\\values-h720dp-v13.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "66",
+                        "endOffsets": "117"
+                    }
+                }
+            ]
+        }
+    ]
+}

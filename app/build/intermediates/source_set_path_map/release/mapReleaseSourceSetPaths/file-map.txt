@@ -1,0 +1,58 @@
+com.roadside.app-pngs-0 C:\Codes\Projects\Iqoo_hack_prototype\app\build\generated\res\pngs\release
+com.roadside.app-resValues-1 C:\Codes\Projects\Iqoo_hack_prototype\app\build\generated\res\resValues\release
+com.roadside.app-packageReleaseResources-2 C:\Codes\Projects\Iqoo_hack_prototype\app\build\intermediates\incremental\release\packageReleaseResources\merged.dir
+com.roadside.app-packageReleaseResources-3 C:\Codes\Projects\Iqoo_hack_prototype\app\build\intermediates\incremental\release\packageReleaseResources\stripped.dir
+com.roadside.app-release-4 C:\Codes\Projects\Iqoo_hack_prototype\app\build\intermediates\merged_res\release\mergeReleaseResources
+com.roadside.app-main-5 C:\Codes\Projects\Iqoo_hack_prototype\app\src\main\res
+com.roadside.app-release-6 C:\Codes\Projects\Iqoo_hack_prototype\app\src\release\res
+com.roadside.app-ui-util-release-7 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\0a0643dd1af37d8cf05cbc210ea9b34d\transformed\ui-util-release\res
+com.roadside.app-ui-tooling-preview-release-8 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\14cc580cfb17d90ce264e0f8596b1398\transformed\ui-tooling-preview-release\res
+com.roadside.app-tracing-ktx-1.2.0-9 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\16459f0cca9b42bfe740e8bc6774b28e\transformed\tracing-ktx-1.2.0\res
+com.roadside.app-ui-release-10 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\1ba92a4714ac8c7fb355897531fa9d46\transformed\ui-release\res
+com.roadside.app-lifecycle-process-2.8.7-11 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\1d025b68ff0faf8d59ccf54de4d99453\transformed\lifecycle-process-2.8.7\res
+com.roadside.app-lifecycle-viewmodel-release-12 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\1d6c4ea4ac0818ca549236ce50aa182d\transformed\lifecycle-viewmodel-release\res
+com.roadside.app-lifecycle-viewmodel-compose-release-13 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\1dd93bcc2d4593ab4ac4f8c93c8a06b4\transformed\lifecycle-viewmodel-compose-release\res
+com.roadside.app-material3-release-14 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\21f1f2af8f253de165d9ea09ae08f8cc\transformed\material3-release\res
+com.roadside.app-material-ripple-release-15 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\28ad0cd33c9ff4ae1bef07e6f4fed299\transformed\material-ripple-release\res
+com.roadside.app-core-runtime-2.2.0-16 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\2cbeb32cf143b8bcafcd2b8cd13739ff\transformed\core-runtime-2.2.0\res
+com.roadside.app-startup-runtime-1.1.1-17 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\2e7f178b4dbfaa01f2cce8f2866d9c4f\transformed\startup-runtime-1.1.1\res
+com.roadside.app-ui-text-release-18 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\2f9caf2c54076e4d7c66f9677e18a546\transformed\ui-text-release\res
+com.roadside.app-ui-geometry-release-19 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\31b6f3dabe3fed14e45cd0bea39c022d\transformed\ui-geometry-release\res
+com.roadside.app-lifecycle-livedata-2.8.7-20 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\36b515ad3b15ea6e8b5882290f7436d9\transformed\lifecycle-livedata-2.8.7\res
+com.roadside.app-material-icons-core-release-21 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\3df4b6a2efb08db812e0a0a79c69a140\transformed\material-icons-core-release\res
+com.roadside.app-runtime-saveable-release-22 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\47938c54c233b57d43aa579b1fd10c01\transformed\runtime-saveable-release\res
+com.roadside.app-core-1.15.0-23 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\479b0ab6a985c605e2528491c29b7304\transformed\core-1.15.0\res
+com.roadside.app-appcompat-resources-1.1.0-24 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\4972efac0245a1cd430794415219d626\transformed\appcompat-resources-1.1.0\res
+com.roadside.app-core-ktx-1.15.0-25 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\55693251862cd9a5c9961b6cb97935bf\transformed\core-ktx-1.15.0\res
+com.roadside.app-lifecycle-runtime-compose-release-26 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\599c0a84aafbb62be219faa60e57a0f2\transformed\lifecycle-runtime-compose-release\res
+com.roadside.app-appcompat-1.1.0-27 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\5c3ffb0d0a5fe01f1d84ac467981f62e\transformed\appcompat-1.1.0\res
+com.roadside.app-tracing-1.2.0-28 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\60dfcd7558b85e4ff22d90698da80b41\transformed\tracing-1.2.0\res
+com.roadside.app-foundation-layout-release-29 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\6597b3ba9aaca071d3296e208842e4d8\transformed\foundation-layout-release\res
+com.roadside.app-savedstate-1.2.1-30 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\6783fcb4a813adb6dd2191f267bcea32\transformed\savedstate-1.2.1\res
+com.roadside.app-camera-core-1.4.1-31 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\6ec4b2d55b7a8466b36aae487514b2f5\transformed\camera-core-1.4.1\res
+com.roadside.app-lifecycle-viewmodel-savedstate-2.8.7-32 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\72640f9924cb739ca668ffbfe5fd5833\transformed\lifecycle-viewmodel-savedstate-2.8.7\res
+com.roadside.app-lifecycle-livedata-core-ktx-2.8.7-33 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\72adb0751ff31153338d06986d468f6a\transformed\lifecycle-livedata-core-ktx-2.8.7\res
+com.roadside.app-graphics-path-1.0.1-34 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\736f807e2dca059ff6138fcae99a5b00\transformed\graphics-path-1.0.1\res
+com.roadside.app-camera-view-1.4.1-35 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\7562df80e6a26fc0104c7cc56548a513\transformed\camera-view-1.4.1\res
+com.roadside.app-material-icons-extended-release-36 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\767cf363165040b67417764d8f63cb72\transformed\material-icons-extended-release\res
+com.roadside.app-camera-camera2-1.4.1-37 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\8877484895c426dc1e6918433bbc4110\transformed\camera-camera2-1.4.1\res
+com.roadside.app-activity-1.9.3-38 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\8884bc2ecd16ee8f6378381b08819788\transformed\activity-1.9.3\res
+com.roadside.app-camera-lifecycle-1.4.1-39 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\96729923d94e007b497a3de0c042c127\transformed\camera-lifecycle-1.4.1\res
+com.roadside.app-runtime-release-40 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\9b192139753bb2c04ddaffc35e231dde\transformed\runtime-release\res
+com.roadside.app-activity-ktx-1.9.3-41 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\9c938f9d7c40fd3ec2e14485c333790e\transformed\activity-ktx-1.9.3\res
+com.roadside.app-profileinstaller-1.3.1-42 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\a10c531455d876330cea039f0bc7c20a\transformed\profileinstaller-1.3.1\res
+com.roadside.app-foundation-release-43 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\a5d3e0887d5afc6835884d7ff9d79175\transformed\foundation-release\res
+com.roadside.app-ui-graphics-release-44 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\b17f198bc39f574f24eaddb14b69aa11\transformed\ui-graphics-release\res
+com.roadside.app-camera-video-1.4.1-45 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\b401365e524643312dbdf5255d423fbf\transformed\camera-video-1.4.1\res
+com.roadside.app-ui-unit-release-46 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\c70fe413eb6f6e0412f7bb5fe0928cc3\transformed\ui-unit-release\res
+com.roadside.app-lifecycle-runtime-ktx-release-47 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\c9e3dec62659f1e5beda2f9377df86e5\transformed\lifecycle-runtime-ktx-release\res
+com.roadside.app-annotation-experimental-1.4.1-48 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\d57e531c49f6156f34e38b3d3ba5659a\transformed\annotation-experimental-1.4.1\res
+com.roadside.app-lifecycle-viewmodel-ktx-2.8.7-49 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\dd0909a35a68875ea551892a51c611f3\transformed\lifecycle-viewmodel-ktx-2.8.7\res
+com.roadside.app-animation-release-50 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\e1e58fca96bdaeb960ed20ddcaa268dd\transformed\animation-release\res
+com.roadside.app-emoji2-1.3.0-51 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\e345c159c93701a5da474190b9aae177\transformed\emoji2-1.3.0\res
+com.roadside.app-activity-compose-1.9.3-52 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\e5276cbd8a42513770104cc1e30ff4f3\transformed\activity-compose-1.9.3\res
+com.roadside.app-savedstate-ktx-1.2.1-53 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\f7aeb02723f7c215e87ba544ebb63768\transformed\savedstate-ktx-1.2.1\res
+com.roadside.app-animation-core-release-54 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\f8b89a67a905583a4fc0623f17231ef6\transformed\animation-core-release\res
+com.roadside.app-lifecycle-livedata-core-2.8.7-55 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\fcd9ab886be98736a302370215e5ffae\transformed\lifecycle-livedata-core-2.8.7\res
+com.roadside.app-customview-poolingcontainer-1.0.0-56 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\fe300fe4a8d7335127f842ad68d62574\transformed\customview-poolingcontainer-1.0.0\res
+com.roadside.app-lifecycle-runtime-release-57 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\ffd66f7d54f4f32b0098af66d5dcbf53\transformed\lifecycle-runtime-release\res

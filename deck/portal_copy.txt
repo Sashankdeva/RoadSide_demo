@@ -1,0 +1,12 @@
+IDEA TITLE (153/200)
+RoadSide: hold your phone near your motorcycle and it tells you what that noise is — diagnostics by sound and sight, running fully offline on the handset
+
+
+DESCRIPTION (1937/2000)
+Every rider knows the moment. A new rattle, click or squeal appears and you have no idea whether it is a dry chain, a loose guard, or nothing at all. You cannot type a sound into a search box, and the breakdown never happens where there is signal. So the choice is to ignore it and risk a snapped chain, or ride to a mechanic and pay for work the bike may not have needed.
+
+RoadSide closes that gap on the phone the rider already owns. Hold it near the bike for five seconds: it records at 16 kHz and classifies what it hears using YAMNet, a pretrained model covering 521 everyday sound events. Point the camera at the drivetrain and a MobileNetV3 feature extractor with a small trained head reports whether a chain is actually the subject of the frame. A rules engine fuses sound and sight into one plain-language advisory with the tools needed and a safety note. Both backbones are frozen and pretrained, so only tiny heads are trained; the whole model set is 35 MB, and the app declares no internet permission at all, making it structurally incapable of phoning home.
+
+This is not a mockup. It is built and measured on a OnePlus 13R: 14 ms model cold start, 1 ms per inference window, 43 ms for a full five-second clip, 24 ms per image. Fourteen instrumented tests run headlessly over ADB and all pass, including an airplane-mode pass with every radio off, zero crashes and zero ANRs.
+
+We are equally clear about what it does not do. It reports evidence, never a verdict, and returns UNKNOWN when confidence is too low. Across 98 public traffic recordings, no motorcycle was falsely flagged as a chain or brake fault. Chain detection is 76.5% cross-validated on 51 labelled photographs. We tested a rust-colour heuristic, measured clean chains on wooden benches scoring higher than corroded ones, and removed it rather than ship a plausible-looking threshold. The pipeline is finished; what it needs next is labelled fault recordings.
