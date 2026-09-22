@@ -70,7 +70,7 @@ fun YamNetDebugScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("YAMNet Debug") },
+                title = { Text("Sensor check") },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

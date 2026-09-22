@@ -211,18 +211,20 @@ Do not adjust them from theory.
 
 ---
 
-## 5. Planned next stage (not implemented)
-
-Deferred until recordings are collected — do not build this yet:
+## 5. Embedding path (built since this section was written)
 
 ```
-YAMNet → 1024-d embeddings → RoadSide specialist classifier
-                              → NORMAL / CHAIN_NOISE / BRAKE_NOISE / ENGINE_ABNORMAL / UNKNOWN
+YAMNet embeddings → 1024-d per 0.96 s frame → chain_audio_head.json → p(chain_noise)
 ```
 
-Note that the shipped `yamnet.tflite` is the MediaPipe single-output variant: it exposes
-scores only, no embedding tensor (`YamNetInterpreter` returns zeros for embeddings). Moving
-to an embedding-based classifier will require a model variant that exposes the 1024-d output.
+The original blocker recorded here still holds for `yamnet.tflite`: it is the MediaPipe
+single-output variant, scores only, no embedding tensor (`YamNetInterpreter` returns zeros
+for embeddings). A second model, `yamnet_embedding.tflite`, was added for the 1024-d output
+and is what `YamNetEmbeddingExtractor` and `ChainAudioSpecialist` use.
+
+The narrower head that exists today answers chain / no-chain only, not the five classes
+sketched above, and it did not pass its held-out gate. See `MODELS.md` for what it was
+trained on and what it is safe to claim.
 
 ---
 
@@ -272,7 +274,7 @@ thread with the real models and asserts both classifiers run elsewhere.
 .\verify.ps1 -Offline
 ```
 
-Runs the full instrumented suite (24 tests as of 2026-09-22, including the recorder-lifecycle and specialist-head tests) twice: once normally, and once
+Runs the full instrumented suite (25 tests as of 2026-09-22, including the recorder-lifecycle and specialist-head tests) twice: once normally, and once
 with airplane mode on **and Wi-Fi and Bluetooth explicitly off**. On this OnePlus, airplane
 mode alone leaves Wi-Fi connected (`wifi_on=2`), so the script also confirms that
 `dumpsys connectivity` reports no default network and that a ping to 8.8.8.8 fails, both

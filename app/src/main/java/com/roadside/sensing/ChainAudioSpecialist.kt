@@ -18,9 +18,23 @@ import java.io.Closeable
  * would flag 30–43 of the 98 guardrail clips. The embeddings carry more than the class
  * scores, so a head trained on labelled chain audio can separate what the classes cannot.
  *
- * The head is only shipped if its training run passed the held-out gate
- * (`roadside_chain_audio/tools/train_audio_head.py`). With no `chain_audio_head.json` in
- * assets, [loadOrNull] returns null and the audio path behaves exactly as before.
+ * With no `chain_audio_head.json` in assets, [loadOrNull] returns null and the audio path
+ * behaves exactly as before.
+ *
+ * PROVENANCE OF THE CURRENTLY SHIPPED HEAD — read before claiming anything about it.
+ * `train_audio_head.py` exports a head only when its pre-registered gate passes. That gate
+ * never passed (see MODELS.md), and the head in assets today was exported outside it:
+ * it was fitted on ALL available data, including the two user chain sessions it is demoed
+ * on, and its 0.65 clip threshold was chosen after seeing the guardrail scores. Measured
+ * with those exact weights: 0/98 guardrail clips and 0/28 user phone negatives flagged
+ * (highest negative 0.597), 3/3 user chain recordings detected (0.88–0.95) — but those three
+ * are its own training data, so that number is not an accuracy estimate. The only honest
+ * held-out estimates available are out-of-fold precision 0.765 / recall 0.632.
+ *
+ * So: this head is a demo-scoped component, not a validated chain detector. Anything it
+ * reports is still framed as "possible", and [EvidenceTranslator]'s own thresholds are
+ * untouched. Heads must declare `gate_passed` or `prototype_only` in their metadata;
+ * `ChainAudioSpecialistTest` fails if a head is shipped without saying which it is.
  *
  * Not thread-safe; [YamNetAudioClassifier] calls it under the agent's audio lock.
  */
@@ -74,6 +88,12 @@ class ChainAudioSpecialist private constructor(
                 }
                 val threshold = head.metadata["clip_threshold"]?.toFloatOrNull()
                     ?: error("Head metadata has no clip_threshold")
+                // A head that did not pass the gate is usable for the fixed demo but must not
+                // be mistaken for a validated detector, so it says so on every load.
+                if (head.metadata["gate_passed"] != "true") {
+                    Log.w(TAG, "Head did NOT pass the held-out gate (metadata: ${head.metadata}); " +
+                        "treat its chain evidence as demo-scoped, not validated")
+                }
                 ChainAudioSpecialist(YamNetEmbeddingExtractor(context), head, threshold)
                     .also { Log.i(TAG, "Specialist chain head loaded, clip threshold $threshold") }
             } catch (e: Exception) {

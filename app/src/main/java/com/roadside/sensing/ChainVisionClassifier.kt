@@ -61,9 +61,14 @@ class ChainVisionClassifier(
          */
         const val MIN_MARGIN = 0.15f
 
-        /** Class names the trained head uses. See `roadside_vision/tools/train_head.py`. */
+        /** Class names the trained head uses. See `roadside_vision/tools/train_condition_head.py`. */
         const val CLASS_CHAIN_VISIBLE = "chain_visible"
+        const val CLASS_CHAIN_PRESENT = "chain_present"
         const val CLASS_NOT_CHAIN = "not_chain"
+        const val CLASS_CHAIN_SOILED = "chain_soiled"
+        const val CLASS_CHAIN_APPEARS_DRY = "chain_appears_dry"
+        const val CLASS_SPROCKET_WEAR_VISIBLE = "sprocket_wear_visible"
+        const val CLASS_NORMAL = "normal"
     }
 
     private val extractor: MobileNetFeatureExtractor? by lazy {
@@ -136,41 +141,115 @@ class ChainVisionClassifier(
         Log.i(TAG, "${imageFile.name}: ${pred.describe(hd.classes)} " +
             "(margin=${"%.3f".format(pred.margin)}, ${preMs}/${featMs}/${headMs} ms)")
 
-        // Thresholds are chosen on the validation split by the training script and shipped in
-        // the head's metadata, so the UNKNOWN policy stays tied to the head it was validated
-        // with. The constants are only a fallback for heads without that metadata.
-        val minP = hd.metadata["min_probability"]?.toFloatOrNull() ?: MIN_PROBABILITY
+        val minP = hd.metadata["min_probability_presence"]?.toFloatOrNull()
+            ?: hd.metadata["min_probability"]?.toFloatOrNull()
+            ?: MIN_PROBABILITY
         val minMargin = hd.metadata["min_margin"]?.toFloatOrNull() ?: MIN_MARGIN
-        val confident = pred.topProbability >= minP && pred.margin >= minMargin
+
+        val thSoiled = hd.metadata["min_probability_soiled"]?.toFloatOrNull() ?: 0.45f
+        val thDry = hd.metadata["min_probability_dry"]?.toFloatOrNull() ?: 0.40f
+        val thWear = hd.metadata["min_probability_sprocket_wear"]?.toFloatOrNull() ?: 0.65f
+        val thNormal = hd.metadata["min_probability_normal"]?.toFloatOrNull() ?: 0.35f
+
+        // Presence is decided on the presence pair ONLY: chain_present vs not_chain.
+        //
+        // The v3 head's probability array mixes that softmax pair with independent condition
+        // sigmoids (soiled, dry, sprocket wear, normal). Taking the top class and margin across
+        // the whole array — as this code did — let a condition attribute interfere with presence.
+        // Two real cases: a chain photo with normal=0.99 outranked chain_present=0.966, so the
+        // top class was "normal" and it was rejected; another had chain_present=0.999 but a
+        // "margin" of 0.009 to normal=0.99, far below 0.90. Measured on 42 labelled chain
+        // photos, that rule detected 0; this one detects 27, with the same thresholds.
+        val presIdx = hd.classes.indexOf(CLASS_CHAIN_PRESENT).takeIf { it >= 0 }
+            ?: hd.classes.indexOf(CLASS_CHAIN_VISIBLE)
+        val notIdx = hd.classes.indexOf(CLASS_NOT_CHAIN)
+        val (pPresent, pNot) = if (presIdx >= 0 && notIdx >= 0) {
+            pred.probabilities[presIdx] to pred.probabilities[notIdx]
+        } else {
+            // A head without the pair: fall back to the whole-array decision.
+            (if (pred.topClass in setOf(CLASS_CHAIN_PRESENT, CLASS_CHAIN_VISIBLE)) pred.topProbability else 0f) to
+                (if (pred.topClass == CLASS_NOT_CHAIN) pred.topProbability else 0f)
+        }
+        val presenceMargin = if (presIdx >= 0 && notIdx >= 0) pPresent - pNot else pred.margin
+        val isChainSubject = pPresent >= minP && presenceMargin >= minMargin
 
         val (result, reason) = when {
-            !confident -> unknown(
-                "The photo is not clear enough to judge the chain"
-            ) to ("top=${pred.topClass} p=${"%.3f".format(pred.topProbability)} " +
-                "margin=${"%.3f".format(pred.margin)} below thresholds " +
-                "(p>=$minP, margin>=$minMargin)")
+            !isChainSubject -> {
+                val desc = if (pNot >= minP) {
+                    "No drive chain is clearly visible in this photo"
+                } else {
+                    "The photo is not clear enough to confirm a drive chain"
+                }
+                unknown(desc, rawScores = pred.sigmoids) to
+                    "presence p=${"%.3f".format(pPresent)} not_chain=${"%.3f".format(pNot)} " +
+                    "margin=${"%.3f".format(presenceMargin)} below thresholds (p>=$minP, margin>=$minMargin)"
+            }
 
-            pred.topClass == CLASS_NOT_CHAIN -> unknown(
-                "No drive chain is clearly visible in this photo"
-            ) to "classified as $CLASS_NOT_CHAIN p=${"%.3f".format(pred.topProbability)}"
+            else -> {
+                // Chain is detected! Evaluate supported condition observations
+                val pSoiled = pred.sigmoids["chain_soiled"] ?: 0f
+                val pDry = pred.sigmoids["chain_appears_dry"] ?: 0f
+                val pWear = pred.sigmoids["sprocket_wear_visible"] ?: 0f
+                val pNormal = pred.sigmoids["normal"] ?: 0f
 
-            pred.topClass == CLASS_CHAIN_VISIBLE -> VisionClassificationResult(
-                label = VisionClassificationResult.CHAIN_VISIBLE,
-                confidence = pred.topProbability,
-                labelDescription = "Drive chain detected in the photo. Its condition cannot be assessed from this image."
-            ) to "classified as $CLASS_CHAIN_VISIBLE p=${"%.3f".format(pred.topProbability)}"
+                val observations = mutableListOf(VisionClassificationResult.CHAIN_PRESENT)
+                val descParts = mutableListOf("Drive chain detected.")
 
-            else -> unknown("Unrecognised visual category") to
-                "head returned unexpected class '${pred.topClass}'"
+                if (pSoiled >= thSoiled) {
+                    observations.add(VisionClassificationResult.CHAIN_SOILED)
+                    descParts.add("The visible chain appears heavily soiled.")
+                }
+                if (pDry >= thDry) {
+                    observations.add(VisionClassificationResult.CHAIN_APPEARS_DRY)
+                    descParts.add("Drive chain rollers lack visible lubricant film with mild surface dryness.")
+                }
+                if (pWear >= thWear) {
+                    observations.add(VisionClassificationResult.SPROCKET_WEAR_VISIBLE)
+                    descParts.add("Visible sprocket teeth appear worn or irregular.")
+                }
+                if (observations.size == 1 && pNormal >= thNormal) {
+                    observations.add(VisionClassificationResult.NORMAL)
+                    descParts.add("No obvious visual defect detected on visible chain and sprocket.")
+                } else if (observations.size == 1) {
+                    descParts.add("Its condition cannot be assessed from this image.")
+                }
+
+                // Pick primary label for compatibility with rule evaluators
+                val primaryLabel = when {
+                    VisionClassificationResult.SPROCKET_WEAR_VISIBLE in observations -> VisionClassificationResult.SPROCKET_WEAR_VISIBLE
+                    VisionClassificationResult.CHAIN_SOILED in observations -> VisionClassificationResult.CHAIN_SOILED
+                    VisionClassificationResult.CHAIN_APPEARS_DRY in observations -> VisionClassificationResult.CHAIN_APPEARS_DRY
+                    VisionClassificationResult.NORMAL in observations -> VisionClassificationResult.NORMAL
+                    else -> VisionClassificationResult.CHAIN_VISIBLE
+                }
+
+                val primaryConf = when (primaryLabel) {
+                    VisionClassificationResult.SPROCKET_WEAR_VISIBLE -> pWear
+                    VisionClassificationResult.CHAIN_SOILED -> pSoiled
+                    VisionClassificationResult.CHAIN_APPEARS_DRY -> pDry
+                    VisionClassificationResult.NORMAL -> pNormal
+                    else -> pPresent
+                }
+
+                VisionClassificationResult(
+                    label = primaryLabel,
+                    confidence = primaryConf,
+                    labelDescription = descParts.joinToString(" "),
+                    observations = observations,
+                    rawScores = pred.sigmoids
+                ) to "classified observations=$observations scores=${pred.sigmoids}"
+            }
         }
 
         return Detail(result, pred.topClass, probs, pred.margin, preMs, featMs, headMs, reason)
     }
 
-    private fun unknown(description: String) = VisionClassificationResult(
+    private fun unknown(description: String, rawScores: Map<String, Float> = emptyMap()) = VisionClassificationResult(
         label = VisionClassificationResult.UNKNOWN,
         confidence = 0f,
-        labelDescription = description
+        labelDescription = description,
+        observations = listOf(VisionClassificationResult.UNKNOWN),
+        rawScores = rawScores
     )
 
     /** Metadata for the debug screen. */

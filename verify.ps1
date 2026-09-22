@@ -152,10 +152,20 @@ Section 'PUSH VALIDATION DATA'
 # Offline demo data: audio clips and labelled chain images. Filenames carry the
 # expected label so the instrumented tests can score themselves on device.
 $visionSrc = 'C:\Codes\Datasets\roadside_vision\device_images'
+$visionHeldOut = 'C:\Codes\Datasets\roadside_vision\device_images_heldout'
 $audioSrc  = 'C:\Codes\Datasets\roadside_validation\device_subset'
+# The directory is cleared first. It used to accumulate images across sessions — 145 files
+# from three different pushes, including two images present twice under different names —
+# so the per-image scores depended on the phone's history rather than on what is on disk.
 if (Test-Path $visionSrc) {
+    & $adb shell 'rm -rf /sdcard/Android/data/com.roadside/files/vision_test'
     & $adb shell 'mkdir -p /sdcard/Android/data/com.roadside/files/vision_test'
     & $adb push "$visionSrc/." '/sdcard/Android/data/com.roadside/files/vision_test/'
+    # Images from the v2 test split that the head never trained on, deduplicated against
+    # device_images by content hash.
+    if (Test-Path $visionHeldOut) {
+        & $adb push "$visionHeldOut/." '/sdcard/Android/data/com.roadside/files/vision_test/'
+    }
 } else { Write-Host 'no vision_test images to push' }
 if (Test-Path $audioSrc) {
     & $adb shell 'mkdir -p /sdcard/Android/data/com.roadside/files/roadside_test'

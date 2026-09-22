@@ -37,6 +37,16 @@ object WavDecoder {
                 return FloatArray(0)
             }
 
+            // The 44-byte header is fixed for everything AudioRecorder writes and for every
+            // clip pushed to the device so far (all 105 checked: canonical 44-byte, 16 kHz,
+            // mono, 16-bit). A file with extra RIFF chunks before `data` would still decode,
+            // but shifted, and silently — so say so rather than reporting a plausible result.
+            if (rawBytes.size >= 40 && !(rawBytes[36] == 'd'.code.toByte() && rawBytes[37] == 'a'.code.toByte() &&
+                    rawBytes[38] == 't'.code.toByte() && rawBytes[39] == 'a'.code.toByte())) {
+                Log.w(TAG, "${wavFile.name} has no 'data' chunk at byte 36; it is not the " +
+                    "canonical 44-byte layout this decoder assumes, so samples may be offset")
+            }
+
             val pcmBytes = rawBytes.size - WAV_HEADER_BYTES
             if (pcmBytes <= 0) {
                 Log.w(TAG, "WAV has no PCM data: ${wavFile.name}")

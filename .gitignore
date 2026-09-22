@@ -1,0 +1,60 @@
+# Gradle & Kotlin
+.gradle/
+.kotlin/
+build/
+app/build/
+**/build/
+
+# Android Studio / IntelliJ IDEA / VS Code
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.vscode/
+
+# Local configuration & environment
+local.properties
+.env
+.env.*
+!.env.example
+
+# Build outputs
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+app/build/verify/
+capture/
+
+# Audio / Media runtime & test temporary artifacts
+# (app/src test fixtures and assets are explicitly preserved)
+*.pcm
+*.wav
+!app/src/**
+
+# Generated screenshots and screen recordings
+*.mp4
+*.webm
+*.webp_demo
+*.mkv
+
+# OS / Editor temporary files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Presentation deck dependencies & local build outputs
+deck/node_modules/
+deck/build/
+deck/ref/
+node_modules/

@@ -1,0 +1,34 @@
+TRACK
+Smart Living  ("AI-powered solutions for smart homes, IoT, connected devices, or everyday convenience")
+If asked why a bike app is here: "Smart living doesn't stop at the front door. Your vehicle is the
+device you rely on most every day, and RoadSide makes the phone you already own a smart sensor
+for it, with no dongle and no internet."
+
+
+IDEA TITLE
+RoadSide: a roadside mechanic in your phone that listens to your vehicle, looks at the problem and tells you what to do, fully on-device
+
+TITLE ALTERNATIVES
+- RoadSide: your phone listens to your vehicle and looks at the problem, then tells you what may be wrong and what to do, for bikes today and cars next, fully on-device
+- RoadSide: hold your phone near your vehicle and it listens to the noise, looks at the problem, and tells you what may be wrong and what to do, fully on-device
+
+
+DESCRIPTION
+Smart living doesn't stop at the front door: for millions of people the device they rely on most every day is their bike or car, and when it starts making a new rattle, knock, click or squeal they have no idea whether it is something serious or nothing at all. You cannot type a sound into a search box, breakdowns rarely happen where there is signal, and the only options are to ignore it or pay a mechanic just to find out. RoadSide turns the phone you already carry into a roadside mechanic, with no dongle and no extra hardware. Hold the phone near the vehicle to record the noise, then point the camera at the problem area: lightweight on-device AI listens for faults such as chain rattle, brake squeal, engine knocking, misfires and belt squeal, and looks for visible problems such as a dirty chain, worn sprocket teeth or a corroded battery terminal. RoadSide combines what it hears and sees into one plain-language answer: what it found, what it may mean, what you can do right now, the tools you may need and a short safety note, such as riding slowly on smooth roads until a worn part is checked. An "Ask RoadSide" assistant answers follow-ups like "I don't have chain cleaner" or "Is it safe to ride?" using the current result. Everything runs on the handset: no account, no cloud and no internet connection, so it works in airplane mode, keeps recordings and photos private and costs nothing to run. RoadSide is designed as a trustworthy first check, not a replacement for a mechanic: it keeps what it observed separate from what it concludes, says "not clear enough" instead of guessing, and tells you plainly when it is time to get professional help.
+
+
+VIDEO WALKTHROUGH URL
+(add your YouTube link after recording)
+
+PROTOTYPE URL
+https://github.com/Sashankdeva/RoadSide_demo   (make sure it's public, or leave blank)
+
+DECK / DOCUMENT
+Upload RoadSide_deck_v3.pptx (or RoadSide_deck_v3.pdf)
+
+ANDROID PROFICIENCY
+Intermediate   (unchanged)
+
+LLM PROFICIENCY
+Experimented with local LLMs   (unchanged — note RoadSide itself uses on-device audio and vision
+models, not an LLM; "Ask RoadSide" is local rules)

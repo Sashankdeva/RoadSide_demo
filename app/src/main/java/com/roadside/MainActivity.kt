@@ -1,33 +1,44 @@
 package com.roadside
 
 import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.*
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.ui.Modifier
 import com.roadside.agent.RoadSideAgent
 import com.roadside.audio.AudioRecorder
 import com.roadside.camera.CameraManager
 import com.roadside.speech.SpeechRecognizer
 import com.roadside.ui.*
+import com.roadside.ui.theme.RoadSideColors
+import com.roadside.ui.theme.RoadSideTheme
+import com.roadside.ui.theme.screenTransition
 import kotlinx.coroutines.launch
 
+/**
+ * The flow: Home → Describe → Listen → Inspect → Assessment → Solution.
+ *
+ * Listen and Inspect are both [Capture] (one composable owns the recorder and camera
+ * lifecycle); the mode decides which step it is.
+ */
 sealed class Screen {
     object Home : Screen()
-    object Chat : Screen()
+    object Describe : Screen()
     data class Capture(val mode: CaptureMode) : Screen()
-    object Diagnosis : Screen()
-    object Guide : Screen()
-    object YamNetDebug : Screen()
+    object Assessment : Screen()
+    object Solution : Screen()
+    object SensorCheck : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -38,6 +49,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var speechRecognizer: SpeechRecognizer
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         agent = RoadSideAgent(applicationContext)
@@ -46,8 +58,13 @@ class MainActivity : ComponentActivity() {
         speechRecognizer = SpeechRecognizer(applicationContext)
 
         setContent {
-            MaterialTheme {
-                Surface(color = MaterialTheme.colorScheme.background) {
+            RoadSideTheme {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(RoadSideColors.canvas)
+                        .navigationBarsPadding()
+                ) {
                     RoadSideApp(
                         agent = agent,
                         audioRecorder = audioRecorder,
@@ -77,162 +94,119 @@ fun RoadSideApp(
     context: android.content.Context
 ) {
     val contextState by agent.context.collectAsState()
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
+    // A real back stack: Back returns to where the rider actually came from (Inspect may be
+    // reached from Listen or straight from Describe), and the transition direction follows.
+    val stack = remember { mutableStateListOf<Screen>(Screen.Home) }
+    var forward by remember { mutableStateOf(true) }
     val coroutineScope = rememberCoroutineScope()
+    val current = stack.last()
 
-    // Activity result launcher for speech recognition
+    val navigate: (Screen) -> Unit = { target ->
+        forward = true
+        stack.add(target)
+    }
+    val back: () -> Unit = {
+        if (stack.size > 1) {
+            forward = false
+            stack.removeAt(stack.lastIndex)
+        }
+    }
+    val restart: () -> Unit = {
+        agent.resetSession()
+        forward = false
+        stack.clear()
+        stack.add(Screen.Home)
+    }
+
     val speechLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val spokenMatches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-            val spokenText = spokenMatches?.firstOrNull().orEmpty()
-            if (spokenText.isNotBlank()) {
-                agent.handleUserText(spokenText)
-                currentScreen = Screen.Chat
-            }
+            val spokenText = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull().orEmpty()
+            if (spokenText.isNotBlank()) agent.handleUserText(spokenText)
         }
     }
 
     val triggerSpeech = {
         try {
-            val intent = SpeechRecognizer.createSpeechIntent()
-            speechLauncher.launch(intent)
+            speechLauncher.launch(SpeechRecognizer.createSpeechIntent())
         } catch (e: Exception) {
-            // Fallback to internal speech recognizer
+            // Fallback to the in-process recogniser.
             speechRecognizer.startListening(
-                onResult = { text ->
-                    if (text.isNotBlank()) {
-                        agent.handleUserText(text)
-                        currentScreen = Screen.Chat
-                    }
-                },
-                onError = { /* fallback silent or toast handled */ }
+                onResult = { text -> if (text.isNotBlank()) agent.handleUserText(text) },
+                onError = { /* the screen keeps its typed text; nothing to surface */ }
             )
         }
     }
 
-    // Handle system back navigation
-    BackHandler(enabled = currentScreen !is Screen.Home) {
-        currentScreen = when (currentScreen) {
-            is Screen.Guide -> Screen.Diagnosis
-            is Screen.Diagnosis -> Screen.Chat
-            is Screen.Capture -> Screen.Chat
-            is Screen.Chat -> Screen.Home
-            is Screen.YamNetDebug -> Screen.Home
-            is Screen.Home -> Screen.Home
-        }
-    }
+    BackHandler(enabled = stack.size > 1) { back() }
 
-    when (val screen = currentScreen) {
-        is Screen.Home -> {
-            HomeScreen(
+    AnimatedContent(
+        targetState = current,
+        transitionSpec = { screenTransition(forward) },
+        label = "screen"
+    ) { screen ->
+        when (screen) {
+            is Screen.Home -> HomeScreen(
                 context = contextState,
                 onVehicleTypeChanged = { agent.updateVehicleType(it) },
-                onProblemDescriptionChanged = { /* tracked in state */ },
-                onAskRoadSide = { problem ->
-                    agent.handleUserText(problem)
-                    currentScreen = Screen.Chat
-                },
-                onListenClicked = {
-                    currentScreen = Screen.Capture(CaptureMode.AUDIO)
-                },
-                onInspectClicked = {
-                    currentScreen = Screen.Capture(CaptureMode.CAMERA)
-                },
-                onVoiceInputRequested = triggerSpeech,
-                onDebugClicked = { currentScreen = Screen.YamNetDebug }
-            )
-        }
-
-        is Screen.Chat -> {
-            ChatScreen(
-                context = contextState,
-                onSendMessage = { text ->
-                    agent.handleUserText(text)
-                },
-                onRecordSoundClicked = {
-                    currentScreen = Screen.Capture(CaptureMode.AUDIO)
-                },
-                onOpenCameraClicked = {
-                    currentScreen = Screen.Capture(CaptureMode.CAMERA)
-                },
-                onViewDiagnosisClicked = {
+                onStartCheck = { navigate(Screen.Describe) },
+                onContinueCheck = {
                     agent.ensureDiagnosis()
-                    currentScreen = Screen.Diagnosis
+                    navigate(Screen.Assessment)
                 },
-                onVoiceInputRequested = triggerSpeech,
-                onBackClicked = {
-                    currentScreen = Screen.Home
-                }
+                onSensorCheck = { navigate(Screen.SensorCheck) }
             )
-        }
 
-        is Screen.Capture -> {
-            CaptureScreen(
+            is Screen.Describe -> DescribeScreen(
+                context = contextState,
+                onVehicleTypeChanged = { agent.updateVehicleType(it) },
+                onProblemDescriptionChanged = { },
+                onAskRoadSide = { problem -> agent.handleUserText(problem) },
+                onListenClicked = { navigate(Screen.Capture(CaptureMode.AUDIO)) },
+                onInspectClicked = { navigate(Screen.Capture(CaptureMode.CAMERA)) },
+                onVoiceInputRequested = triggerSpeech,
+                onBack = back
+            )
+
+            is Screen.Capture -> CaptureScreen(
                 initialMode = screen.mode,
                 context = contextState,
                 audioRecorder = audioRecorder,
                 cameraManager = cameraManager,
                 onAudioFileSaved = { file ->
-                    coroutineScope.launch {
-                        agent.processAudioCapture(file)
-                    }
+                    coroutineScope.launch { agent.processAudioCapture(file) }
                 },
                 onVisionPhotoSaved = { file ->
-                    coroutineScope.launch {
-                        agent.processVisionCapture(file)
-                    }
+                    coroutineScope.launch { agent.processVisionCapture(file) }
                 },
                 onContinueToDiagnosis = {
                     agent.ensureDiagnosis()
-                    currentScreen = Screen.Diagnosis
+                    navigate(Screen.Assessment)
                 },
-                onSwitchToCamera = {
-                    currentScreen = Screen.Capture(CaptureMode.CAMERA)
-                },
-                onSwitchToAudio = {
-                    currentScreen = Screen.Capture(CaptureMode.AUDIO)
-                },
-                onBackClicked = {
-                    currentScreen = Screen.Chat
-                }
+                onSwitchToCamera = { navigate(Screen.Capture(CaptureMode.CAMERA)) },
+                onSwitchToAudio = { navigate(Screen.Capture(CaptureMode.AUDIO)) },
+                onBackClicked = back
             )
-        }
 
-        is Screen.Diagnosis -> {
-            DiagnosisScreen(
+            is Screen.Assessment -> AssessmentScreen(
                 context = contextState,
-                onGuideMeClicked = {
-                    agent.setGuideStep(0)
-                    currentScreen = Screen.Guide
-                },
-                onBackClicked = {
-                    currentScreen = Screen.Chat
-                }
+                onSeeSolution = { navigate(Screen.Solution) },
+                onCheckAgain = { navigate(Screen.Capture(CaptureMode.AUDIO)) },
+                onBack = back
             )
-        }
 
-        is Screen.Guide -> {
-            GuideScreen(
+            is Screen.Solution -> SolutionScreen(
                 context = contextState,
-                onStepChanged = { step ->
-                    agent.setGuideStep(step)
-                },
-                onFinishGuide = {
-                    agent.resetSession()
-                    currentScreen = Screen.Home
-                },
-                onBackClicked = {
-                    currentScreen = Screen.Diagnosis
-                }
+                onBack = back,
+                onFinished = restart
             )
-        }
 
-        is Screen.YamNetDebug -> {
-            YamNetDebugScreen(
+            is Screen.SensorCheck -> YamNetDebugScreen(
                 androidContext = context,
-                onBackClicked = { currentScreen = Screen.Home }
+                onBackClicked = back
             )
         }
     }

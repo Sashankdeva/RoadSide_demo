@@ -9,25 +9,17 @@ interface VisionClassifier {
 data class VisionClassificationResult(
     val label: String,
     val confidence: Float,
-    val labelDescription: String
+    val labelDescription: String,
+    val observations: List<String> = emptyList(),
+    val rawScores: Map<String, Float> = emptyMap()
 ) {
     companion object {
-        const val CHAIN_APPEARS_DRY = "chain_appears_dry"
-
-        /**
-         * A drive chain is the subject of the photo. **Condition is not assessed.**
-         *
-         * This is what the real vision model ([ChainVisionClassifier]) can actually
-         * support: it was trained to separate "chain photo" from "not a chain photo".
-         * It deliberately does NOT mean the chain looks healthy — treating it as such
-         * would be the same fabricated-evidence problem the mock had, just inverted.
-         *
-         * Its value to diagnosis is corroboration: if the audio suggests chain-like
-         * noise and the camera confirms a chain is actually in view, the chain
-         * hypothesis is better supported than from audio alone.
-         */
+        const val CHAIN_PRESENT = "chain_present"
         const val CHAIN_VISIBLE = "chain_visible"
-
+        const val CHAIN_SOILED = "chain_soiled"
+        const val CHAIN_APPEARS_DRY = "chain_appears_dry"
+        const val SPROCKET_WEAR_VISIBLE = "sprocket_wear_visible"
+        const val NORMAL = "normal"
         const val BRAKE_ROTOR_WORN = "brake_rotor_worn"
         const val BATTERY_TERMINAL_CORRODED = "battery_terminal_corroded"
         const val UNKNOWN = "UNKNOWN"

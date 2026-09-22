@@ -1,6 +1,0 @@
-com.roadside.test.app-androidTest-0 C:\Codes\Projects\Iqoo_hack_prototype\app\build\generated\res\resValues\androidTest\debug
-com.roadside.test.app-mergeDebugAndroidTestResources-1 C:\Codes\Projects\Iqoo_hack_prototype\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
-com.roadside.test.app-mergeDebugAndroidTestResources-2 C:\Codes\Projects\Iqoo_hack_prototype\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
-com.roadside.test.app-debugAndroidTest-3 C:\Codes\Projects\Iqoo_hack_prototype\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources
-com.roadside.test.app-tracing-1.2.0-4 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\60dfcd7558b85e4ff22d90698da80b41\transformed\tracing-1.2.0\res
-com.roadside.test.app-core-1.6.1-5 C:\Users\Sri Sashank\.gradle\caches\8.11.1\transforms\c0aa79be71722c1f74f261b370c15c0e\transformed\core-1.6.1\res

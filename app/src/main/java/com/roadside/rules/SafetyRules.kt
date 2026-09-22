@@ -31,7 +31,10 @@ object SafetyRules {
     fun formatVisionEvidence(visualPattern: String?): String {
         return when (visualPattern) {
             "chain_appears_dry" -> "Visual inspection suggests chain appears dry with minimal visible lubrication."
-            "chain_visible" -> "Drive chain detected in the photo. Its condition cannot be assessed from this image."
+            "chain_soiled" -> "Visual inspection suggests the visible drive chain appears heavily soiled."
+            "sprocket_wear_visible" -> "Visual inspection shows visible sprocket teeth appear worn or irregular."
+            "normal" -> "Visual inspection shows drive chain and sprocket with no obvious visual defect."
+            "chain_visible", "chain_present" -> "Drive chain detected in the photo. Its condition cannot be assessed from this image."
             "chain_loose" -> "Visual inspection suggests drive chain may have excessive slack."
             "brake_rotor_worn" -> "Visual inspection shows scoring or uneven wear pattern on brake rotor."
             "battery_terminal_corroded" -> "Visual inspection reveals potential oxidation or loose contact on battery terminals."
@@ -50,7 +53,7 @@ object SafetyRules {
             return if (audioEvidence == null && visualEvidence == null) {
                 "No sound recording or photo has been analysed yet, so there is no evidence to assess. " +
                     "Record the sound or take a photo of the suspected area."
-            } else if (visualEvidence == "chain_visible") {
+            } else if (visualEvidence == "chain_visible" || visualEvidence == "chain_present") {
                 "A drive chain was detected in the photo, but its condition cannot be determined from an image alone. " +
                     "No sound evidence currently points to a specific drivetrain issue."
             } else {
@@ -60,12 +63,24 @@ object SafetyRules {
         }
 
         // When both sensors converge on the chain, note the corroboration.
-        if (issueId == VehicleKnowledge.CHAIN_MAINTENANCE.id &&
-            audioEvidence == "possible_chain_noise" && visualEvidence == "chain_visible") {
-            return "Both the recorded sound and the photo point to the drive chain: " +
-                "rattling was detected in the audio, and a chain is visible in the photo. " +
-                "This is preliminary evidence suggesting the chain may benefit from inspection and lubrication. " +
-                "This advisory does not replace professional mechanical inspection."
+        if (issueId == VehicleKnowledge.CHAIN_MAINTENANCE.id) {
+            if (audioEvidence == "possible_chain_noise" &&
+                (visualEvidence == "chain_visible" || visualEvidence == "chain_present")) {
+                return "Both the recorded sound and the photo point to the drive chain: " +
+                    "rattling was detected in the audio, and a chain is visible in the photo. " +
+                    "This is preliminary evidence suggesting the chain may benefit from inspection and lubrication. " +
+                    "This advisory does not replace professional mechanical inspection."
+            } else if (audioEvidence == "possible_chain_noise" && visualEvidence == "chain_soiled") {
+                return "Both the recorded sound and the photo point to the drive chain: " +
+                    "rattling was detected in the audio, and the chain appears heavily soiled in the photo. " +
+                    "This is preliminary evidence suggesting the chain may benefit from cleaning and lubrication. " +
+                    "This advisory does not replace professional mechanical inspection."
+            } else if (audioEvidence == "possible_chain_noise" && visualEvidence == "sprocket_wear_visible") {
+                return "Both the recorded sound and the photo point to the drive chain and sprocket: " +
+                    "rattling was detected in the audio, and visible sprocket wear was observed in the photo. " +
+                    "This is preliminary evidence suggesting inspection of sprocket teeth and chain tension. " +
+                    "This advisory does not replace professional mechanical inspection."
+            }
         }
 
         return "Preliminary evidence suggests this vehicle may benefit from attention to ${issueTitle.lowercase()}. " +

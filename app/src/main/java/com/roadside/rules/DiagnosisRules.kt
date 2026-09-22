@@ -31,7 +31,10 @@ object DiagnosisRules {
         // are condition labels that no shipped model produces today; they are honoured here
         // so the rules stay correct if a condition model is added later.
         val entry = when {
-            audioPattern == "possible_chain_noise" || visualPattern == "chain_appears_dry" ->
+            audioPattern == "possible_chain_noise" ||
+            visualPattern == "chain_appears_dry" ||
+            visualPattern == "chain_soiled" ||
+            visualPattern == "sprocket_wear_visible" ->
                 VehicleKnowledge.CHAIN_MAINTENANCE
 
             audioPattern == "brake_squeal" || visualPattern == "brake_rotor_worn" ->

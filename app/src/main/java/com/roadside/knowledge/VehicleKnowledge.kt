@@ -94,7 +94,7 @@ object VehicleKnowledge {
 
     val UNKNOWN = KnowledgeEntry(
         id = "unknown",
-        title = "Inconclusive / Unknown condition",
+        title = "No clear finding",
         supportedVehicle = "Motorcycle",
         symptoms = listOf("Unidentified noise or condition"),
         audioPatterns = listOf("UNKNOWN"),

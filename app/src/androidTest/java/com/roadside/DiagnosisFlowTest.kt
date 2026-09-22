@@ -59,6 +59,8 @@ class DiagnosisFlowTest {
         /** Vision labels the real classifier can produce, none of which is a fault. */
         val NON_FAULT_VISION = listOf(
             VisionClassificationResult.CHAIN_VISIBLE,
+            VisionClassificationResult.CHAIN_PRESENT,
+            VisionClassificationResult.NORMAL,
             VisionClassificationResult.UNKNOWN,
             null
         )
@@ -85,7 +87,11 @@ class DiagnosisFlowTest {
 
         val ALL_VISION_LABELS = listOf(
             VisionClassificationResult.CHAIN_VISIBLE,
+            VisionClassificationResult.CHAIN_PRESENT,
             VisionClassificationResult.CHAIN_APPEARS_DRY,
+            VisionClassificationResult.CHAIN_SOILED,
+            VisionClassificationResult.SPROCKET_WEAR_VISIBLE,
+            VisionClassificationResult.NORMAL,
             VisionClassificationResult.BRAKE_ROTOR_WORN,
             VisionClassificationResult.BATTERY_TERMINAL_CORRODED,
             VisionClassificationResult.UNKNOWN,

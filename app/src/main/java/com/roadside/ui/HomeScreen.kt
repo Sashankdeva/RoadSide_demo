@@ -1,174 +1,150 @@
 package com.roadside.ui
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Hearing
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.roadside.agent.VehicleContext
+import com.roadside.ui.theme.Eyebrow
+import com.roadside.ui.theme.Gap
+import com.roadside.ui.theme.IconWell
+import com.roadside.ui.theme.InstrumentCard
+import com.roadside.ui.theme.PrimaryAction
+import com.roadside.ui.theme.RoadSideColors
+import com.roadside.ui.theme.RoadSideShapes
+import com.roadside.ui.theme.RoadSideType
+import com.roadside.ui.theme.SecondaryAction
+import com.roadside.ui.theme.SoftDivider
+import com.roadside.ui.theme.Space
+import com.roadside.ui.theme.StatusBadge
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Home — the master visual reference for the rest of the app.
+ *
+ * Everything on it is a statement the app can back: it works offline (no INTERNET
+ * permission), it listens and looks, and it says what the evidence supports. There are no
+ * status readouts here, because a landing screen has nothing real to measure yet.
+ */
 @Composable
 fun HomeScreen(
     context: VehicleContext,
     onVehicleTypeChanged: (String) -> Unit,
-    onProblemDescriptionChanged: (String) -> Unit,
-    onAskRoadSide: (String) -> Unit,
-    onListenClicked: () -> Unit,
-    onInspectClicked: () -> Unit,
-    onVoiceInputRequested: () -> Unit,
-    onDebugClicked: () -> Unit = {}
+    onStartCheck: () -> Unit,
+    onContinueCheck: () -> Unit,
+    onSensorCheck: () -> Unit
 ) {
-    var problemText by remember(context.userProblemDescription) {
-        mutableStateOf(context.userProblemDescription)
-    }
-    var expandedVehicleDropdown by remember { mutableStateOf(false) }
-    val vehicles = listOf("Motorcycle", "Scooter", "Car (RoadSide Pro)")
+    val checkUnderway = context.audioEvidence != null || context.visionEvidence != null
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ScreenScaffold(
+        title = "Roadside check",
+        vehicle = context.vehicleType,
+        onVehicleChanged = onVehicleTypeChanged,
+        onBack = null
     ) {
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "ROADSide",
-            style = MaterialTheme.typography.headlineLarge,
-            fontSize = 28.sp
-        )
-
-        Text(
-            text = "Offline Vehicle Acoustic & Visual Diagnostics",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        HorizontalDivider()
-
-        // Vehicle Selector
-        Text(text = "Vehicle", style = MaterialTheme.typography.titleMedium)
-        ExposedDropdownMenuBox(
-            expanded = expandedVehicleDropdown,
-            onExpandedChange = { expandedVehicleDropdown = !expandedVehicleDropdown }
-        ) {
-            OutlinedTextField(
-                value = context.vehicleType,
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedVehicleDropdown) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                label = { Text("Selected Vehicle") }
-            )
-            ExposedDropdownMenu(
-                expanded = expandedVehicleDropdown,
-                onDismissRequest = { expandedVehicleDropdown = false }
-            ) {
-                vehicles.forEach { vehicle ->
-                    DropdownMenuItem(
-                        text = { Text(vehicle) },
-                        onClick = {
-                            onVehicleTypeChanged(vehicle)
-                            expandedVehicleDropdown = false
-                        }
-                    )
-                }
-            }
+        Gap(Space.sm)
+        Row(horizontalArrangement = Arrangement.spacedBy(Space.sm)) {
+            StatusBadge("WORKS OFFLINE", RoadSideColors.safe)
+            StatusBadge("STAYS ON THIS PHONE", RoadSideColors.onSurfaceVariant)
         }
+        Gap(Space.lg)
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Problem Description
-        Text(text = "Describe your problem", style = MaterialTheme.typography.titleMedium)
-        OutlinedTextField(
-            value = problemText,
-            onValueChange = {
-                problemText = it
-                onProblemDescriptionChanged(it)
-            },
-            placeholder = { Text("e.g. My bike is making a strange noise...") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3,
-            maxLines = 5,
-            trailingIcon = {
-                IconButton(onClick = onVoiceInputRequested) {
-                    Icon(
-                        imageVector = Icons.Default.Mic,
-                        contentDescription = "Voice Input",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+        Eyebrow("Chain & drive check")
+        Gap(Space.sm)
+        Text(
+            "Something sound wrong with your bike?",
+            style = RoadSideType.headlineXlMobile,
+            color = RoadSideColors.onSurface
         )
+        Gap(Space.sm)
+        Text(
+            "RoadSide listens to the noise and looks at the chain, then tells you plainly what " +
+                "that could mean and what you can do about it.",
+            style = RoadSideType.bodyLg,
+            color = RoadSideColors.onSurfaceVariant
+        )
+        Gap(Space.lg)
 
-        Button(
-            onClick = {
-                if (problemText.isNotBlank()) {
-                    onAskRoadSide(problemText)
-                }
-            },
+        // ── How it works ─────────────────────────────────────────────────────
+        InstrumentCard(
+            color = RoadSideColors.containerLow,
+            shape = RoadSideShapes.enclosure,
+            padding = Space.lg,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Ask RoadSide")
+            Text("HOW IT WORKS", style = RoadSideType.labelDataSm, color = RoadSideColors.onSurfaceVariant)
+            Gap(Space.md)
+            HowRow(Icons.Default.Hearing, "Listen", "Record the noise while it's happening.")
+            Gap(Space.sm + Space.xs)
+            SoftDivider()
+            Gap(Space.sm + Space.xs)
+            HowRow(Icons.Default.CameraAlt, "Inspect", "Take a close photo of the chain.")
+            Gap(Space.sm + Space.xs)
+            SoftDivider()
+            Gap(Space.sm + Space.xs)
+            HowRow(Icons.Default.Build, "Get help", "See what it may mean and what to do next.")
         }
+        Gap(Space.lg)
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(text = "Direct Diagnostics", style = MaterialTheme.typography.titleMedium)
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Button(
-                onClick = onListenClicked,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Listen")
-            }
-
-            Button(
-                onClick = onInspectClicked,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Inspect")
-            }
+        PrimaryAction(
+            text = "Start a check",
+            onClick = onStartCheck,
+            trailingIcon = Icons.AutoMirrored.Filled.ArrowForward
+        )
+        if (checkUnderway) {
+            Gap(Space.sm + Space.xs)
+            SecondaryAction("Continue current check", onContinueCheck, leadingIcon = Icons.Default.Refresh)
         }
+        Gap(Space.lg)
 
-        // Quick status card if evidence already exists
-        if (context.audioEvidence != null || context.visionEvidence != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(text = "Active Session Evidence:", style = MaterialTheme.typography.labelLarge)
-                    if (context.audioEvidence != null) {
-                        Text(text = "• Audio: ${context.audioEvidenceLabel.orEmpty()}", style = MaterialTheme.typography.bodySmall)
-                    }
-                    if (context.visionEvidence != null) {
-                        Text(text = "• Visual: ${context.visionEvidenceLabel.orEmpty()}", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
+        Text(
+            "RoadSide gives a preliminary check, not a professional inspection.",
+            style = RoadSideType.bodySm,
+            color = RoadSideColors.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Gap(Space.md)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            Text(
+                "Sensor check",
+                style = RoadSideType.labelDataSm,
+                color = RoadSideColors.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .clip(RoadSideShapes.pill)
+                    .clickable(onClick = onSensorCheck)
+                    .padding(horizontal = Space.md, vertical = Space.sm)
+            )
         }
+        Gap(Space.xl)
+    }
+}
 
-        // Developer debug entry point (small, non-intrusive)
-        TextButton(
-            onClick = onDebugClicked,
-            modifier = Modifier.align(Alignment.End)
-        ) {
-            Text(text = "YAMNet Debug", style = MaterialTheme.typography.labelSmall)
+@Composable
+private fun HowRow(icon: ImageVector, title: String, body: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconWell {
+            Icon(icon, null, tint = RoadSideColors.primary, modifier = Modifier.size(22.dp))
+        }
+        Gap(Space.md)
+        Column(Modifier.weight(1f)) {
+            Text(title, style = RoadSideType.headlineMd, color = RoadSideColors.onSurface)
+            Text(body, style = RoadSideType.bodyMd, color = RoadSideColors.onSurfaceVariant)
         }
     }
 }

@@ -109,6 +109,39 @@ class ChainAudioSpecialistTest {
         assertTrue("Device scoring diverges from the training script by $worst", worst < 0.02)
     }
 
+    /**
+     * A shipped head must state whether it passed the held-out gate. The head in assets today
+     * did not (`gate_passed: false, prototype_only: true`): it was fitted on all available
+     * data, including the chain sessions it is demoed on, and its threshold was set after the
+     * guardrail was scored. That is defensible for a fixed demo and indefensible as a silent
+     * claim, so the declaration is enforced here rather than left to a reviewer to notice.
+     */
+    @Test
+    fun shippedHeadDeclaresItsValidationStatus() {
+        if (context.assets.list("")?.contains(ChainAudioSpecialist.HEAD_ASSET) != true) {
+            log("no head shipped; nothing to declare")
+            return
+        }
+        val head = com.roadside.sensing.ChainConditionHead.load(context, ChainAudioSpecialist.HEAD_ASSET)
+        val gate = head.metadata["gate_passed"]
+        val prototypeOnly = head.metadata["prototype_only"]
+        log("")
+        log("========== SHIPPED HEAD PROVENANCE ==========")
+        log("metadata: ${head.metadata}")
+        log("gate_passed=$gate prototype_only=$prototypeOnly threshold=${head.metadata["clip_threshold"]}")
+        log("=============================================")
+
+        assertTrue(
+            "A shipped head must declare clip_threshold",
+            head.metadata["clip_threshold"]?.toFloatOrNull() != null
+        )
+        assertTrue(
+            "A shipped head must declare gate_passed=true or prototype_only=true, " +
+                "so its chain evidence is never mistaken for validated (metadata: ${head.metadata})",
+            gate == "true" || prototypeOnly == "true"
+        )
+    }
+
     @Test
     fun missingHeadDisablesSpecialistCleanly() {
         val sp = ChainAudioSpecialist.loadOrNull(context, headAsset = "no_such_head.json")

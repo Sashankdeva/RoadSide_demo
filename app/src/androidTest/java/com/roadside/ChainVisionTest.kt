@@ -184,26 +184,40 @@ class ChainVisionTest {
         var correct = 0
         var scored = 0
         var unknowns = 0
+        val falseChain = mutableListOf<String>()
+        var chainHits = 0
         for (f in images) {
             val expected = f.name.substringBefore("__", "").ifEmpty { null }
             val d = classifier.classifyDetailed(f)
             if (d.result.label == VisionClassificationResult.UNKNOWN) unknowns++
 
             // Map the head's class back to the filename convention for scoring.
+            val isChainDetected = d.result.label in setOf(
+                VisionClassificationResult.CHAIN_VISIBLE,
+                VisionClassificationResult.CHAIN_PRESENT,
+                VisionClassificationResult.CHAIN_SOILED,
+                VisionClassificationResult.CHAIN_APPEARS_DRY,
+                VisionClassificationResult.SPROCKET_WEAR_VISIBLE,
+                VisionClassificationResult.NORMAL
+            )
             val predictedAsLabel = when {
-                d.result.label == VisionClassificationResult.CHAIN_VISIBLE -> "chain_visible"
+                isChainDetected -> "chain_visible"
                 d.topClass == ChainVisionClassifier.CLASS_NOT_CHAIN -> "not_chain"
                 else -> "UNKNOWN"
             }
             if (expected != null) {
                 scored++
                 if (expected == predictedAsLabel) correct++
+                if (expected == "not_chain" && predictedAsLabel == "chain_visible") falseChain += f.name
+                if (expected == "chain_visible" && predictedAsLabel == "chain_visible") chainHits++
             }
-            log("%-46s exp=%-18s got=%-18s p=%s".format(
+            log("%-46s exp=%-18s got=%-18s p=%s obs=%s".format(
                 f.name.take(46), expected ?: "?", predictedAsLabel,
                 d.probabilities.entries.joinToString(",") {
                     "${it.key.take(12)}=${"%.2f".format(it.value)}"
-                }))
+                },
+                d.result.observations
+            ))
             log("    evidence=" + d.result.label + "  " + d.preprocessMs + "/" +
                 d.featureMs + "/" + d.headMs + " ms (pre/feat/head)")
         }
@@ -213,9 +227,40 @@ class ChainVisionTest {
         if (scored > 0) {
             log("accuracy on pushed images: " + "%.1f".format(100.0 * correct / scored) + "%")
         }
+        log("false chain on not_chain images: ${falseChain.size} $falseChain")
         log("=======================================")
         classifier.close()
         assertTrue("No images were classified", images.isNotEmpty())
+
+        // Saying "chain" about a photo with no chain is the failure that matters: it is the
+        // one that produces maintenance advice from nothing. On the 128 images verify.ps1
+        // pushes (50 device_images + 78 held-out, deduplicated), the shipped v2 head does
+        // this on exactly 2, and both are images that DO contain a drive chain — one a chain
+        // sitting on a cassette, one boxed replacement chains — so they are label conventions
+        // rather than hallucinations. The bound is a rate, not a count, so it stays meaningful
+        // if the pushed set changes size; it fails if a future head genuinely inflates false
+        // chains rather than letting that surface in a demo.
+        val notChain = images.count { it.name.startsWith("not_chain__") }
+        val fpRate = if (notChain > 0) falseChain.size.toDouble() / notChain else 0.0
+        log("false-chain rate: %.3f (%d of %d not_chain images)".format(fpRate, falseChain.size, notChain))
+        assertTrue(
+            "False-chain rate ${"%.3f".format(fpRate)} exceeds 0.05 " +
+                "(${falseChain.size} of $notChain): $falseChain",
+            notChain == 0 || fpRate <= 0.05
+        )
+
+        // The other half: a chain photo must actually be detected. With the v3 head the
+        // presence decision once read the top class across presence AND condition scores, so a
+        // "normal" score of 0.99 outranked presence and every chain photo came back "not clear
+        // enough" — 0 of 39 here — while the false-chain check above still passed. A floor on
+        // detection is what makes that failure visible. Measured after the fix: ~0.64.
+        val chains = images.count { it.name.startsWith("chain_visible__") }
+        val recall = if (chains > 0) chainHits.toDouble() / chains else 1.0
+        log("chain detection rate: %.3f (%d of %d chain images)".format(recall, chainHits, chains))
+        assertTrue(
+            "Only $chainHits of $chains chain photos were detected — the chain path is not working",
+            chains == 0 || recall >= 0.40
+        )
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -288,5 +333,72 @@ class ChainVisionTest {
             "chain_maintenance", unknownVision.issueKey)
         assertEquals("No evidence at all must stay unknown",
             "unknown", noChain.issueKey)
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 5. Multi-observation condition evidence and abstention verification
+    // ─────────────────────────────────────────────────────────────────────────
+    @Test
+    fun multiObservationConditionEvidenceAndAbstention() {
+        log("")
+        log("========== CONDITION EVIDENCE & ABSTENTION ==========")
+        val classifier = ChainVisionClassifier(context)
+        log("model info: " + classifier.modelInfo())
+
+        // 1. Synthetic image (dark/generic) should safely abstain as UNKNOWN
+        val syn = syntheticImage()
+        val dSyn = classifier.classifyDetailed(syn)
+        log("synthetic image -> label=${dSyn.result.label} obs=${dSyn.result.observations}")
+        log("  reason: ${dSyn.reason}")
+        assertEquals("Synthetic image must abstain as UNKNOWN",
+            VisionClassificationResult.UNKNOWN, dSyn.result.label)
+        assertTrue("Synthetic image observations must contain UNKNOWN",
+            dSyn.result.observations.contains(VisionClassificationResult.UNKNOWN))
+
+        // 2. Fusion rules with condition observations
+        val soiledDiag = DiagnosisRules.evaluate(
+            vehicleType = "motorcycle",
+            userProblem = "",
+            audioPattern = "possible_chain_noise",
+            visualPattern = VisionClassificationResult.CHAIN_SOILED
+        )
+        log("audio=possible_chain_noise + vision=chain_soiled -> " + soiledDiag.issueKey)
+        assertEquals("chain_maintenance", soiledDiag.issueKey)
+        assertTrue("Summary must note soiled chain",
+            soiledDiag.summary.contains("soiled", ignoreCase = true))
+
+        val wearDiag = DiagnosisRules.evaluate(
+            vehicleType = "motorcycle",
+            userProblem = "",
+            audioPattern = "possible_chain_noise",
+            visualPattern = VisionClassificationResult.SPROCKET_WEAR_VISIBLE
+        )
+        log("audio=possible_chain_noise + vision=sprocket_wear_visible -> " + wearDiag.issueKey)
+        assertEquals("chain_maintenance", wearDiag.issueKey)
+        assertTrue("Summary must note sprocket wear",
+            wearDiag.summary.contains("sprocket wear", ignoreCase = true))
+
+        val dryDiag = DiagnosisRules.evaluate(
+            vehicleType = "motorcycle",
+            userProblem = "",
+            audioPattern = null,
+            visualPattern = VisionClassificationResult.CHAIN_APPEARS_DRY
+        )
+        log("vision=chain_appears_dry alone -> " + dryDiag.issueKey)
+        assertEquals("chain_maintenance", dryDiag.issueKey)
+
+        val normalDiag = DiagnosisRules.evaluate(
+            vehicleType = "motorcycle",
+            userProblem = "",
+            audioPattern = null,
+            visualPattern = VisionClassificationResult.NORMAL
+        )
+        log("vision=normal alone -> " + normalDiag.issueKey)
+        assertEquals("unknown", normalDiag.issueKey)
+        assertTrue("Normal vision summary must note no obvious defect",
+            normalDiag.visionEvidenceSummary.contains("no obvious visual defect", ignoreCase = true))
+
+        classifier.close()
+        log("=====================================================")
     }
 }

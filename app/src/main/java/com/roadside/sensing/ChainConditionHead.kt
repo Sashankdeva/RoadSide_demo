@@ -94,7 +94,9 @@ class ChainConditionHead private constructor(
         val topClass: String,
         val topProbability: Float,
         /** Gap between the best and second-best class — low means the head is unsure. */
-        val margin: Float
+        val margin: Float,
+        /** Independent calibrated sigmoid probability per class attribute. */
+        val sigmoids: Map<String, Float> = emptyMap()
     ) {
         fun describe(classes: List<String>): String =
             classes.indices.sortedByDescending { probabilities[it] }
@@ -122,21 +124,48 @@ class ChainConditionHead private constructor(
             acc
         }
 
-        // Softmax, shifted for numerical stability.
-        val maxLogit = logits.max()
-        var sum = 0.0
-        val probs = FloatArray(classes.size)
-        for (c in logits.indices) {
-            val e = exp((logits[c] - maxLogit).toDouble())
-            probs[c] = e.toFloat()
-            sum += e
+        // Calibrated sigmoid probabilities per class/attribute
+        val sigmoids = mutableMapOf<String, Float>()
+        for (c in classes.indices) {
+            val s = 1.0 / (1.0 + exp(-logits[c].toDouble()))
+            sigmoids[classes[c]] = s.toFloat()
         }
-        for (c in probs.indices) probs[c] = (probs[c] / sum).toFloat()
+
+        // Presence softmax: between chain_present and not_chain
+        val presIdx = classes.indexOf("chain_present").takeIf { it >= 0 } ?: classes.indexOf("chain_visible")
+        val notIdx = classes.indexOf("not_chain")
+        
+        val probs = FloatArray(classes.size)
+        if (presIdx >= 0 && notIdx >= 0) {
+            val maxL = maxOf(logits[presIdx], logits[notIdx])
+            val ePres = exp((logits[presIdx] - maxL).toDouble())
+            val eNot = exp((logits[notIdx] - maxL).toDouble())
+            val sumP = (ePres + eNot).toFloat()
+            probs[presIdx] = (ePres / sumP).toFloat()
+            probs[notIdx] = (eNot / sumP).toFloat()
+            
+            // Assign remaining classes their sigmoid probabilities
+            for (c in classes.indices) {
+                if (c != presIdx && c != notIdx) {
+                    probs[c] = sigmoids[classes[c]] ?: 0f
+                }
+            }
+        } else {
+            // General Softmax, shifted for numerical stability
+            val maxLogit = logits.max()
+            var sum = 0.0
+            for (c in logits.indices) {
+                val e = exp((logits[c] - maxLogit).toDouble())
+                probs[c] = e.toFloat()
+                sum += e
+            }
+            for (c in probs.indices) probs[c] = (probs[c] / sum).toFloat()
+        }
 
         val order = classes.indices.sortedByDescending { probs[it] }
         val top = order[0]
         val second = if (order.size > 1) probs[order[1]] else 0f
 
-        return Prediction(probs, top, classes[top], probs[top], probs[top] - second)
+        return Prediction(probs, top, classes[top], probs[top], probs[top] - second, sigmoids)
     }
 }

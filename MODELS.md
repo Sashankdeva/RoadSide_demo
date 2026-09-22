@@ -80,7 +80,11 @@ Mean pooling, max pooling, temporal statistics and small temporal models are dow
 decisions; pooling at extraction time would discard what is needed to choose between them.
 `Result.meanScores()` exists only to mean-pool *scores* for parity with the baseline path.
 
-## Specialist chain head (built; not enabled — failed its gate)
+## Specialist chain head (shipped for the fixed demo; it did NOT pass its gate)
+
+> **State on 2026-09-22:** `app/src/main/assets/chain_audio_head.json` exists, so the
+> specialist is **active in the app**. It is not a validated chain detector — see
+> "What is actually shipped" below before repeating any number from this section.
 
 ```
 waveform -> yamnet_embedding.tflite (1024-d per 0.96 s frame)
@@ -97,7 +101,8 @@ far enough would flag 30–43 of the 98 guardrail clips.
 - The baseline EvidenceTranslator result is unchanged, and its thresholds are untouched.
 - The specialist can only *add* chain evidence. It never overrides brake or electrical evidence.
 - It is inactive unless `chain_audio_head.json` is in the app's assets.
-- `train_audio_head.py` writes that asset **only if a pre-registered gate passes**.
+- `train_audio_head.py` writes that asset **only if a pre-registered gate passes**. The head
+  in assets today was not produced by that path (see below).
 
 **Gate:**
 - 0 of 98 guardrail clips flagged
@@ -152,10 +157,40 @@ no-chain recordings from the same bike and place (engine idling, wheel still, pe
 or breathing nearby). Only 3 chain recordings from 2 sessions exist today. See `DATASETS.md`
 §5.
 
+### What is actually shipped
+
+Neither gated run exported a head, but a third head was fitted afterwards and placed in
+assets by hand. Its metadata records what it is: `gate_passed: false`, `prototype_only: true`,
+`sessions: chain0,chainA`, `clip_threshold: 0.65`.
+
+Measured with those exact weights (`roadside_chain_audio/tools/score_shipped_head.py`, same
+`yamnet_embedding.tflite` the app uses):
+
+| Set | Result |
+|---|---|
+| 98 guardrail clips (never trained on) | **0 flagged**, highest score 0.597 |
+| 28 user phone negatives | **0 flagged**, highest score 0.517 |
+| 3 user chain recordings | 3 detected, 0.88–0.95 |
+
+Two things that table does not say:
+
+- The 3 chain recordings **are its training data** (sessions chain0 and chainA). That row is
+  a memorisation check, not an accuracy estimate. The honest held-out numbers for this family
+  of head are out-of-fold precision 0.765 / recall 0.632, and 1 of 3 user chain recordings
+  detected when they are held out.
+- The 0.65 threshold was chosen **after** the guardrail was scored; it sits 0.053 above the
+  highest guardrail score. The guardrail therefore no longer functions as a held-out set for
+  this head, and the margin is thin.
+
+Fair summary for a submission: *an embedding head fitted to the demo bike's chain recordings,
+which on 126 negatives from other sources produced no false chain evidence.* Not: *a
+validated chain-noise classifier.* `ChainAudioSpecialistTest.shippedHeadDeclaresItsValidationStatus`
+fails the build if a future head is shipped without declaring `gate_passed` or `prototype_only`.
+
 Device checks (`ChainAudioSpecialistTest`, OnePlus 13R):
 - **Parity:** a candidate head bundled only in the test APK scores 7 clips identically to the
   desktop script (max |diff| 0.0000).
-- **Production path, no head shipped:** 0 of 102 negatives flagged as chain.
+- **Production path, through the shipped head:** 0 of 102 negatives flagged as chain.
 - **Cost:** the embedding pass takes about 5.6 ms per 0.96 s frame (430 ms for a 37 s clip).
 
 ## Extracted embeddings

@@ -40,8 +40,16 @@ data class AudioClassificationResult(
     }
 }
 
-// ── MockAudioClassifier ── kept intact for testing / fallback ─────────────────
+// ── MockAudioClassifier ───────────────────────────────────────────────────────
 
+/**
+ * Deterministic stand-in for UI tests. **Never wire this into the app.**
+ *
+ * It invents evidence from the rider's typed words — with no recording it will happily report
+ * chain rattling at 0.91 — which is exactly the fabricated-evidence behaviour the vision side
+ * removed when its mock fallback was deleted. It is not a fallback: if [YamNetAudioClassifier]
+ * cannot load its model, the honest result is UNKNOWN, not this.
+ */
 class MockAudioClassifier : AudioClassifier {
     override suspend fun classifyAudio(audioFile: File, userContextHint: String): AudioClassificationResult {
         val hint = userContextHint.lowercase()
@@ -111,8 +119,9 @@ class YamNetAudioClassifier(private val context: Context) : AudioClassifier, Aut
     private val interpreter: YamNetInterpreter by lazy { YamNetInterpreter(context) }
 
     // Optional specialist chain head on YAMNet embeddings. Null (and the audio path exactly
-    // as before) unless chain_audio_head.json is shipped, which only happens when its
-    // training run passes the held-out gate.
+    // as before) unless chain_audio_head.json is in assets. The head shipped today did not
+    // pass its held-out gate and is demo-scoped; see [ChainAudioSpecialist] for what was
+    // actually measured with it.
     private val specialist: ChainAudioSpecialist? by lazy { ChainAudioSpecialist.loadOrNull(context) }
 
     override suspend fun classifyAudio(audioFile: File, userContextHint: String): AudioClassificationResult {
@@ -201,7 +210,7 @@ class YamNetAudioClassifier(private val context: Context) : AudioClassifier, Aut
             AudioClassificationResult(
                 label = AudioClassificationResult.POSSIBLE_CHAIN_NOISE,
                 evidenceScore = s.clipScore.coerceIn(0f, 1f),
-                labelDescription = "Sound resembling drive-chain noise detected by the trained chain-sound model",
+                labelDescription = "A rattling sound resembling drive-chain noise was picked up",
                 reason = "specialist chain head score ${"%.3f".format(s.clipScore)} >= ${s.threshold} " +
                     "over ${s.frames} frames; baseline was ${baseline.label} (${baseline.reason})",
                 topContributor = baseline.topContributor,

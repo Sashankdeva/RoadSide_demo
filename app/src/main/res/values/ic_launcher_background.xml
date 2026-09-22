@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The logo square's own dark tone, so the mask edge never shows a seam. -->
+    <color name="ic_launcher_background">#1A1C1F</color>
+</resources>

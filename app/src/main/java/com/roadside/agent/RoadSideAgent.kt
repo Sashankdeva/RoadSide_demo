@@ -112,6 +112,7 @@ class RoadSideAgent(
                 visionImageFile = file,
                 visionEvidence = result.label,
                 visionEvidenceLabel = result.labelDescription,
+                visionObservations = result.observations,
                 chatMessages = current.chatMessages + botMsg
             )
             updated.copy(diagnosisCandidate = diagnose(updated))

@@ -1,3 +1,0 @@
-com.roadside.test
-style WhiteBackgroundDialogTheme
-style WhiteBackgroundTheme

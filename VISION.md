@@ -33,7 +33,11 @@ see *Why condition is not assessed* below.
 |---|---|---|
 | `chain_visible` | `chain_visible` | A drive chain is in view. **Condition not assessed.** |
 | `not_chain` | `UNKNOWN` | No drive chain is the subject of this photo. |
-| either, low confidence | `UNKNOWN` | Below `p ≥ 0.60` or margin `≥ 0.15`. |
+| either, low confidence | `UNKNOWN` | Below `p ≥ 0.95` or margin `≥ 0.90`. |
+
+Thresholds live in the head's own metadata, not in Kotlin constants, so the UNKNOWN policy
+travels with the head it was validated against. `ChainVisionClassifier.MIN_PROBABILITY` /
+`MIN_MARGIN` are only a fallback for a head that declares neither.
 
 `chain_appears_dry` is **no longer produced by the real classifier.** The mock asserted it
 from nothing, which was the fabricated-evidence problem this work set out to remove.
@@ -48,10 +52,15 @@ from nothing, which was the fabricated-evidence problem this work set out to rem
 | Licence | Apache 2.0 |
 | Size | 16.05 MB, sha256 begins `b24cc3ccf79c499163d6ec991f249ed9` |
 | Input / output | `float32[1,224,224,3]` in [0,1] → `float32[1,1280]` |
-| Head | `chain_head.json`, 51.8 KB — multinomial logistic regression, `C=0.05`, `class_weight=balanced` |
+| Head | `chain_head.json` (**v2**, 2026-09-22), 86 KB — multinomial logistic regression, `C=0.01`, `class_weight=balanced`, `min_probability=0.95`, `min_margin=0.90` |
+
+The v1 head described in the first version of this document (51 images, `p ≥ 0.60`) is kept at
+`roadside_vision/chain_head_v1_backup.json` and is **no longer shipped**. On 81 images neither
+head was trained on, v1 reached 0.43 precision with a 25 % false-chain rate; v2 reached 1.00
+precision with no false chains. Everything below describes v2.
 
 The backbone is frozen; only the linear head is fitted. That is what makes this trainable
-from ~50 images, and why the head ships as a few thousand floats rather than a second
+from a few hundred images, and why the head ships as a few thousand floats rather than a second
 TFLite model — a dot product in Kotlin avoids needing TensorFlow on the build machine
 (there are no TF wheels for the Python 3.14 on this box anyway).
 
@@ -59,14 +68,17 @@ Same split as the audio side: general pretrained backbone + tiny task-specific h
 
 ---
 
-## Training data
+## Training data (v2)
 
-| Source | Count | Licence |
+| Source | Images used | Licences |
 |---|---|---|
-| Wikimedia Commons — `Bicycle chains`, `Motorcycle chains`, `Roller chains` | 53 | per-file, recorded in `images_manifest.json` |
-| Wikimedia Commons — `Rusty bicycles`, `Rusty chains`, `Rust` | 10 | per-file |
-| **Usable after labelling** | **51** (26 `chain_visible`, 25 `not_chain`) | |
-| Excluded | 12 | greyscale, line art, extreme aspect ratio, anchor/industrial chains |
+| Wikimedia Commons — chain/derailleur/sprocket categories and motorcycle & bicycle part categories | 373 (104 chain, 269 not-chain) | CC BY-SA 4.0/3.0/2.0, CC BY 2.0, CC0, public domain, GFDL, FAL — per file in `manifest_v2.json` |
+| Openverse (almost all Flickr) | 101 (11 chain, 90 not-chain) | CC BY 2.0, BY-SA 2.0, BY-ND 2.0 — per file in `manifest_openverse_v2.json` |
+| **Total used for train/val/test** | **474** (115 `chain_visible`, 359 `not_chain`) | 304 distinct photographers |
+| Labelled ambiguous and held out of training | 138 | scored separately, see below |
+
+Pixabay was excluded: it returns HTTP 403 to scripted fetches, and that was left alone rather
+than worked around.
 
 **Labels were assigned by looking at the images**, via numbered contact sheets
 (`tools/make_contact_sheets.py` → `sheets/*.jpg` → `labels_*.json`). Category names and
@@ -87,32 +99,39 @@ hammering. This is the main reason the dataset is small.
 
 ---
 
-## Honest performance
+## Honest performance (v2)
 
-**Stratified 5-fold cross-validation, 51 images:**
+**Split by photographer, not by image**, so no photographer's pictures appear on both sides:
+train 284 images / 185 groups, validation 95 / 62, test 95 / 57. `C` and the probability
+threshold were chosen on validation only; the test split was scored once.
+
+**Held-out test split, 95 images** (rows = true label, columns = what the app would show):
 
 ```
-               precision  recall  f1-score  support
-chain_visible      0.750   0.808     0.778       26
-    not_chain      0.783   0.720     0.750       25
-       accuracy                      0.765       51
-
-confusion matrix (rows true, cols predicted)
-                chain_visible  not_chain
-chain_visible   21             5
-not_chain       7              18
+                CHAIN_PRESENT   NOT_CHAIN   UNKNOWN
+chain (23)            12             2          9
+not chain (72)         2            42         28
 ```
 
-**Cross-validated accuracy: 76.5 %.** That is the number to quote. Every prediction in it
-comes from a fold that never saw that image.
+| | |
+|---|---|
+| Precision when it says chain | **0.857** (12 of 14) |
+| Recall | 0.522 |
+| False-chain rate on non-chain photos | 2.8 % |
+| Coverage (a decision rather than UNKNOWN) | 0.611 |
+| Accuracy ignoring thresholds (argmax) | 0.884 |
 
-Refitting on all 51 images scores 100 % on those same images. That figure is meaningless as
-a generalisation estimate and is reported only as a desktop/device parity reference.
+On the 131 deliberately ambiguous images (chain partly visible, tiny in frame, motion blur):
+5 CHAIN, 53 NOT, 73 UNKNOWN.
 
-76.5 % on a 2-class problem with 51 images is a working prototype, not a reliable inspector.
-The confidence thresholds (`p ≥ 0.60`, margin `≥ 0.15`) route uncertain photos to `UNKNOWN`
-rather than guessing, so the practical failure mode is "no evidence" rather than wrong
-evidence.
+**0.857 precision is below the 0.90 bar that was set before training**, so the training script
+records `safe: false` and the head is shipped at the user's explicit direction for the fixed
+demo, not because it cleared the bar. What it does clear comfortably is the model it replaced:
+on 81 images neither head trained on, v1 scored 0.43 precision with a 25 % false-chain rate.
+
+The practical failure mode is "no evidence" rather than wrong evidence: roughly 4 in 10 photos
+get UNKNOWN, and about half of real chain photos are missed. Standing further back, a dirty
+lens, or a chain that does not fill the frame all push a photo below `p ≥ 0.95`.
 
 ---
 
@@ -156,6 +175,11 @@ fault by itself:
 | — | `UNKNOWN` | `unknown` |
 | `engine_noise` / `mechanical_noise` / `ambient_only` / `UNKNOWN` | any of the above | `unknown` |
 
+`possible_chain_noise` now has two possible origins: `EvidenceTranslator`'s rattle rule, or the
+specialist embedding head when it is shipped. The head currently in assets did not pass its
+held-out gate (`MODELS.md`), so an audio-only chain diagnosis rests on a demo-scoped model —
+the audio + vision row is the one with two independent sensors behind it.
+
 `DiagnosisRules` selects a fault **only from positive sensor evidence**: `possible_chain_noise`,
 `brake_squeal` or `clicking_electrical` from audio, or a condition label from vision.
 `chain_visible` and `UNKNOWN` are not positive evidence, so they cannot block the audio route
@@ -164,7 +188,7 @@ and cannot create a fault on their own.
 The rider's typed problem description does **not** affect the verdict. Before 2026-09-22 the
 words "chain", "brake", "battery" or "start" in the description selected a fault on their
 own. On the OnePlus 13R, a recording classified as background-only plus the text "my chain
-makes a noise" produced *Chain maintenance*; it now produces *Inconclusive / Unknown*.
+makes a noise" produced *Chain maintenance*; it now produces *No clear finding*.
 `DiagnosisFlowTest#typedKeywordsDoNotOverrideSensorEvidence` checks 93 text × evidence
 combinations.
 
@@ -193,9 +217,11 @@ classification of pushed images with per-image latency, and the fusion rules abo
 `DiagnosisFlowTest` covers the load-failure path (missing backbone, missing head → `UNKNOWN`)
 and checks that inference runs off the main thread with the real models.
 
-Note that the 50 pushed `device_images` are the same images the head was trained on, so the
-on-device accuracy printed for them (100 %) is a desktop/device parity check only. The
-generalisation figure is the 76.5 % cross-validated accuracy above.
+Note what the pushed `device_images` are: of the 50, 46 appear in the v2 dataset (21 train,
+11 validation, 14 test) and 4 are outside it. The on-device accuracy printed for them is
+therefore mostly a desktop/device **parity** check, not a generalisation estimate — the
+generalisation figures are the held-out test numbers above. Parity was measured at 68 of 72
+images matching the desktop prediction exactly, median |Δp| 0.005.
 
 Measured per-image latency on the OnePlus 13R (2026-09-22): feature extraction 24–58 ms
 (mean ~30 ms on a cool device, ~48 ms on others), plus ~9–14 ms of decode and preprocessing.
@@ -215,17 +241,33 @@ were confirmed upright after `ImagePreprocessor`'s rotation.
 
 The rest is CameraX taking and saving the 12 MP JPEG.
 
-Only non-chain scenes were available for this run (a room corner and dark frames). All six
+In the first run only non-chain scenes were available (a room corner and dark frames). All six
 captures gave `UNKNOWN` (the four with probabilities logged were `not_chain`, p = 0.69–0.85),
-which is correct. The
-`chain_visible` path through the live camera has **not** been exercised with a real chain; it
-is covered by `ChainVisionTest` on the 50 pushed images, which are the training images.
+which is correct.
+
+**Positive camera test (2026-09-22, v2 head).** The phone was pointed at a held-out chain
+photograph displayed full-screen on a monitor — an image from the test split, never trained
+on. Three captures were taken and re-scored on the device through the same classifier:
+
+| Capture | p(chain) | Result |
+|---|---|---|
+| 1 | 0.72 | `UNKNOWN` — "not clear enough to confirm a drive chain" |
+| 2 | 0.83 | `UNKNOWN` |
+| 3 | **0.96** | **`chain_visible`** — shown in the app as chain detected, condition not assessed |
+
+So the live `chain_visible` path is exercised, and the two sub-threshold captures returned
+UNKNOWN rather than guessing. One in three crossing `p ≥ 0.95` is consistent with the 0.611
+coverage measured on the test split: the camera must be close and steady.
 
 ## Reproducing the training
 
 ```bash
-python tools/fetch_images.py          # Commons candidates (throttled; skips on 429)
-python tools/make_contact_sheets.py chain_candidates
-#   ... inspect sheets/*.jpg, write labels into labels_*.json ...
-python tools/train_head.py            # -> app/src/main/assets/chain_head.json
+python tools/fetch_v2.py              # Commons candidates (throttled; skips on 429)
+python tools/fetch_openverse_v2.py    # Openverse/Flickr candidates
+python tools/make_sheets_v2.py        # -> sheets_v2/*.jpg contact sheets
+#   ... label every image by eye into labels_v2_raw.txt as C / N / A ...
+python tools/train_vision_v2.py       # -> chain_head_v2_candidate.json + report_vision_v2.json
 ```
+
+The candidate is copied to `app/src/main/assets/chain_head.json` by hand, so a training run
+can never silently change what the app ships. v1 is preserved at `chain_head_v1_backup.json`.
